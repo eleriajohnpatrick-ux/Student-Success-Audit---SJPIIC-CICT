@@ -23,6 +23,7 @@ import { CourseInfo, InstructorProfile, QaAuditResult, CompanyBasis, SavedAudit 
 import { ComputedAuditStats, CorrelationInsight } from '../utils/gradeCalculations';
 import { PeriodTrendChart } from './PeriodTrendChart';
 import { PeriodProgressionRecharts } from './PeriodProgressionRecharts';
+import { StudentAtRiskModule } from './StudentAtRiskModule';
 
 interface AuditReportViewProps {
   user: User | null;
@@ -306,6 +307,15 @@ export const AuditReportView: React.FC<AuditReportViewProps> = ({
 
         {/* Examination Periods Trajectory & Distribution Chart */}
         <PeriodTrendChart stats={stats} />
+
+        {/* Student At-Risk & Early Intervention Module */}
+        <StudentAtRiskModule
+          atRiskStudents={stats.atRiskStudents ?? []}
+          totalStudents={stats.totalStudents}
+          passingThreshold={companyBasis?.passingGrade ?? 75}
+          courseCode={courseInfo.subjectCode}
+          courseTitle={courseInfo.subjectTitle}
+        />
 
         {/* Strategy Effectiveness Scorecard */}
         <div className="bg-slate-800/60 print:bg-slate-100 border border-slate-700/80 rounded-2xl p-6 space-y-4">
