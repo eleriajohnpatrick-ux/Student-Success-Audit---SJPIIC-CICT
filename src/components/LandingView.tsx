@@ -5,18 +5,51 @@ interface LandingViewProps {
   onSignIn: () => void;
   onExploreDemo: () => void;
   onExploreAdminDemo?: () => void;
+  onTroubleshootAuth?: () => void;
 }
 
-export const LandingView: React.FC<LandingViewProps> = ({ onSignIn, onExploreDemo, onExploreAdminDemo }) => {
+export const LandingView: React.FC<LandingViewProps> = ({ 
+  onSignIn, 
+  onExploreDemo, 
+  onExploreAdminDemo,
+  onTroubleshootAuth 
+}) => {
+  const isVercelHost = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+  const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
+
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-between py-8 px-4 sm:px-6 lg:px-8">
       {/* Hero Section */}
-      <div className="max-w-5xl mx-auto text-center space-y-6 pt-4">
+      <div className="max-w-5xl mx-auto text-center space-y-6 pt-2">
         {/* Institutional Pill */}
         <div className="inline-flex items-center space-x-2 bg-blue-950/70 border border-blue-800/80 px-3.5 py-1.5 rounded-full text-xs font-semibold text-blue-300 shadow-inner">
           <Award className="w-3.5 h-3.5 text-amber-400" />
           <span>St. John Paul II College of Davao • CICT Quality Assurance</span>
         </div>
+
+        {/* Vercel Deployment Notice Banner (if running on vercel.app) */}
+        {isVercelHost && (
+          <div className="max-w-2xl mx-auto bg-amber-950/60 border border-amber-600/50 rounded-xl p-3 text-xs text-amber-200 flex items-center justify-between shadow-lg text-left">
+            <div className="flex items-center space-x-2.5">
+              <span className="flex h-2 w-2 relative shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <span>
+                <strong>Vercel Deployment Notice:</strong> For Google SSO to work, add <code className="bg-amber-900/80 px-1 py-0.5 rounded font-mono text-white text-[11px]">{currentHost}</code> to Firebase Console Authorized Domains.
+              </span>
+            </div>
+            {onTroubleshootAuth && (
+              <button
+                type="button"
+                onClick={onTroubleshootAuth}
+                className="ml-3 shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded text-[11px] transition-colors"
+              >
+                Domain Setup Guide
+              </button>
+            )}
+          </div>
+        )}
 
         <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
           Institutional <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-amber-300">Student Success Audit</span>
@@ -31,7 +64,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onSignIn, onExploreDem
           <button
             type="button"
             onClick={onSignIn}
-            className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-blue-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-sm"
+            className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-blue-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-sm cursor-pointer"
           >
             <ShieldCheck className="w-4 h-4 text-amber-300" />
             <span>Sign In with Google SSO</span>
@@ -41,7 +74,7 @@ export const LandingView: React.FC<LandingViewProps> = ({ onSignIn, onExploreDem
           <button
             type="button"
             onClick={onExploreDemo}
-            className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700/80 text-slate-200 border border-slate-700 font-semibold px-5 py-3 rounded-xl transition-all text-sm"
+            className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700/80 text-slate-200 border border-slate-700 font-semibold px-5 py-3 rounded-xl transition-all text-sm cursor-pointer"
           >
             <BarChart3 className="w-4 h-4 text-blue-400" />
             <span>Try Faculty eClass Audit</span>
@@ -51,10 +84,20 @@ export const LandingView: React.FC<LandingViewProps> = ({ onSignIn, onExploreDem
             <button
               type="button"
               onClick={onExploreAdminDemo}
-              className="flex items-center space-x-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold px-4 py-3 rounded-xl transition-all text-xs"
+              className="flex items-center space-x-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold px-4 py-3 rounded-xl transition-all text-xs cursor-pointer"
             >
               <ShieldCheck className="w-4 h-4 text-amber-400" />
               <span>Inspect Super Admin Console</span>
+            </button>
+          )}
+
+          {onTroubleshootAuth && !isVercelHost && (
+            <button
+              type="button"
+              onClick={onTroubleshootAuth}
+              className="flex items-center space-x-1.5 text-xs text-slate-400 hover:text-slate-200 underline decoration-slate-600 underline-offset-4 py-2 px-1 cursor-pointer"
+            >
+              <span>Vercel / Domain Auth Guide</span>
             </button>
           )}
         </div>

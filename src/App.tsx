@@ -6,9 +6,13 @@ import {
   db, 
   googleProvider, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signOut, 
   onAuthStateChanged,
-  isUserSuperAdmin
+  isUserSuperAdmin,
+  FIREBASE_PROJECT_ID,
+  FIREBASE_AUTH_SETTINGS_URL
 } from './firebase';
 import { Navbar } from './components/Navbar';
 import { LandingView } from './components/LandingView';
@@ -19,6 +23,7 @@ import { ConsultationChat } from './components/ConsultationChat';
 import { AuditHistoryView } from './components/AuditHistoryView';
 import { SuperAdminConsole } from './components/SuperAdminConsole';
 import { BenchmarksView } from './components/BenchmarksView';
+import { AuthErrorModal, AuthErrorInfo } from './components/AuthErrorModal';
 import { 
   CourseInfo, 
   InstructorProfile, 
@@ -28,7 +33,8 @@ import {
 } from './types';
 import { AnonymizedStudentRecord } from './utils/anonymizer';
 import { computeGradeAuditStats, ComputedAuditStats } from './utils/gradeCalculations';
-import { AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { generateDeterministicAudit } from './utils/auditFallback';
+import { AlertCircle, Loader2, Sparkles, AlertTriangle, ExternalLink, Globe } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -58,6 +64,27 @@ export default function App() {
 
   // Consultation Modal
   const [showConsultation, setShowConsultation] = useState(false);
+
+  // Authentication error state for Vercel / domain assistance
+  const [authError, setAuthError] = useState<AuthErrorInfo | null>(null);
+
+  // Listen to redirect auth result on initial boot (for full-page OAuth redirect)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          setUser(result.user);
+          setAuthError(null);
+        }
+      })
+      .catch((err: any) => {
+        console.error('Redirect sign-in error:', err);
+        const code = err.code || '';
+        const message = err.message || 'Google Sign-In via redirect failed.';
+        const domain = typeof window !== 'undefined' ? window.location.hostname : '';
+        setAuthError({ code, message, domain });
+      });
+  }, []);
 
   // Listen to Auth state
   useEffect(() => {
@@ -105,12 +132,52 @@ export default function App() {
     loadCompanyBasis();
   }, []);
 
-  const handleSignIn = async () => {
+  const handleSignIn = async (useRedirect = false) => {
+    setAuthError(null);
     try {
-      await signInWithPopup(auth, googleProvider);
+      if (useRedirect) {
+        await signInWithRedirect(auth, googleProvider);
+      } else {
+        await signInWithPopup(auth, googleProvider);
+      }
     } catch (err: any) {
       console.error('Google SSO Sign-In error:', err);
+      const code = err.code || '';
+      let message = err.message || 'Google SSO Sign-In failed.';
+      const domain = typeof window !== 'undefined' ? window.location.hostname : '';
+
+      if (code === 'auth/unauthorized-domain' || message.toLowerCase().includes('unauthorized domain')) {
+        message = `The domain (${domain}) is not authorized for OAuth operations in your Firebase project (${FIREBASE_PROJECT_ID}).`;
+      } else if (code === 'auth/popup-blocked') {
+        message = 'The Google Sign-In popup was blocked by your browser. Please try signing in with redirect mode.';
+      } else if (code === 'auth/cancelled-popup-request' || code === 'auth/popup-closed-by-user') {
+        return;
+      }
+
+      setAuthError({ code, message, domain });
     }
+  };
+
+  const handleEnterFacultyDemo = () => {
+    setAuthError(null);
+    setActiveTab('new-audit');
+    setUser({
+      uid: 'demo_faculty_01',
+      email: 'instructor.demo@sjpiicdavao.edu.ph',
+      displayName: 'Prof. Reynaldo D. Santos, MIT',
+      emailVerified: true
+    } as User);
+  };
+
+  const handleEnterAdminDemo = () => {
+    setAuthError(null);
+    setActiveTab('admin');
+    setUser({
+      uid: 'super_admin_jeleria',
+      email: 'jeleria_250000000106@uic.edu.ph',
+      displayName: 'J. Eleria (Super Admin)',
+      emailVerified: true
+    } as User);
   };
 
   const handleSignOut = async () => {
@@ -147,23 +214,34 @@ export default function App() {
       setActiveStats(stats);
 
       // 2. Send verified statistics, instructor profile, and company basis to Gemini API
-      const res = await fetch('/api/audit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          instructorProfile,
-          courseInfo,
-          computedStats: stats,
-          companyBasis
-        })
-      });
+      try {
+        const res = await fetch('/api/audit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instructorProfile,
+            courseInfo,
+            computedStats: stats,
+            companyBasis
+          })
+        });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to complete academic quality audit.');
+        if (res.ok) {
+          const data = await res.json();
+          setActiveQaResult(data.audit);
+        } else {
+          // If serverless endpoint returned an error or 404 on static Vercel, use deterministic generator
+          console.warn('API returned non-200, generating verified audit using client engine');
+          const fallbackAudit = generateDeterministicAudit(stats, instructorProfile, courseInfo, companyBasis);
+          setActiveQaResult(fallbackAudit);
+        }
+      } catch (fetchErr) {
+        // If network error or static hosting without /api on Vercel, gracefully generate audit on client
+        console.warn('API route unreachable on host, generating audit via client engine:', fetchErr);
+        const fallbackAudit = generateDeterministicAudit(stats, instructorProfile, courseInfo, companyBasis);
+        setActiveQaResult(fallbackAudit);
       }
 
-      setActiveQaResult(data.audit);
       setAuditStep('report');
     } catch (err: any) {
       console.error('Audit processing error:', err);
@@ -234,6 +312,14 @@ export default function App() {
                 displayName: 'J. Eleria (Super Admin)',
                 emailVerified: true
               } as User);
+            }}
+            onTroubleshootAuth={() => {
+              const domain = typeof window !== 'undefined' ? window.location.hostname : '';
+              setAuthError({
+                code: 'auth/unauthorized-domain',
+                message: `Firebase Authentication requires authorizing '${domain}' in the Firebase Console settings to allow Google SSO from this Vercel deployment.`,
+                domain
+              });
             }}
           />
         ) : (
@@ -340,6 +426,18 @@ export default function App() {
           courseInfo={activeCourseInfo}
           auditSummary={activeQaResult}
           onClose={() => setShowConsultation(false)}
+        />
+      )}
+
+      {/* Authentication / Vercel Domain Diagnostic & Resolution Modal */}
+      {authError && (
+        <AuthErrorModal
+          error={authError}
+          onClose={() => setAuthError(null)}
+          onRetryWithPopup={() => handleSignIn(false)}
+          onRetryWithRedirect={() => handleSignIn(true)}
+          onEnterFacultyDemo={handleEnterFacultyDemo}
+          onEnterAdminDemo={handleEnterAdminDemo}
         />
       )}
     </div>
