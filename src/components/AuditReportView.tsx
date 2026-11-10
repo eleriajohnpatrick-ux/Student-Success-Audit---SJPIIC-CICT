@@ -20,8 +20,9 @@ import {
   Target
 } from 'lucide-react';
 import { CourseInfo, InstructorProfile, QaAuditResult, CompanyBasis, SavedAudit } from '../types';
-import { ComputedAuditStats } from '../utils/gradeCalculations';
+import { ComputedAuditStats, CorrelationInsight } from '../utils/gradeCalculations';
 import { PeriodTrendChart } from './PeriodTrendChart';
+import { PeriodProgressionRecharts } from './PeriodProgressionRecharts';
 
 interface AuditReportViewProps {
   user: User | null;
@@ -297,6 +298,12 @@ export const AuditReportView: React.FC<AuditReportViewProps> = ({
           </div>
         </div>
 
+        {/* Recharts Line Chart Visualization: Average Scores & Pass/Fail Progression */}
+        <PeriodProgressionRecharts
+          stats={stats}
+          passingThreshold={companyBasis?.passingGrade ?? 75}
+        />
+
         {/* Examination Periods Trajectory & Distribution Chart */}
         <PeriodTrendChart stats={stats} />
 
@@ -421,7 +428,7 @@ export const AuditReportView: React.FC<AuditReportViewProps> = ({
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-            {Object.entries(stats.correlations).map(([key, corr]) => (
+            {(Object.entries(stats.correlations) as [string, CorrelationInsight][]).map(([key, corr]) => (
               <div key={key} className="bg-slate-900/60 print:bg-white p-3.5 rounded-xl border border-slate-800 print:border-slate-300 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-200 print:text-black">{corr.metricName}</span>
