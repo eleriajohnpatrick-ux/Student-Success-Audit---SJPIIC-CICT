@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Instructor professional background and institutional role in CICT",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "department": { "type": "string" },
+        "program": { "type": "string" },
+        "subjectsTaught": { "type": "string" },
+        "teachingStrategies": { "type": "string" },
+        "assessmentStrategy": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "AuditRecord": {
+      "title": "AuditRecord",
+      "description": "Academic quality assurance audit document generated from anonymized eClass records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "instructorName": { "type": "string" },
+        "instructorEmail": { "type": "string" },
+        "subjectCode": { "type": "string" },
+        "subjectTitle": { "type": "string" },
+        "section": { "type": "string" },
+        "schoolYear": { "type": "string" },
+        "semester": { "type": "string" },
+        "totalStudents": { "type": "number" },
+        "stats": { "type": "object" },
+        "qaFindings": { "type": "object" },
+        "scorecard": { "type": "object" },
+        "pdcaCapaPlan": { "type": "object" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "subjectCode", "totalStudents"]
+    },
+    "InteractionRecord": {
+      "title": "InteractionRecord",
+      "description": "Multi-turn QA conversational session and reflection exchange with Gemini AI",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "auditId": { "type": "string" },
+        "prompt": { "type": "string" },
+        "response": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "userId", "prompt", "response"]
+    },
+    "CompanyBasis": {
+      "title": "CompanyBasis",
+      "description": "Institutional QA criteria, grading policies, CHED OBE benchmarks, and targets set by Super Admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "passingGrade": { "type": "number" },
+        "gradingSystem": { "type": "string" },
+        "gradeWeights": { "type": "object" },
+        "attendancePolicy": { "type": "string" },
+        "chedObeStandards": { "type": "string" },
+        "qualityTargets": { "type": "object" },
+        "extractedDocText": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "passingGrade"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Instructor profile and institutional background details"
+    },
+    "/users/{userId}/audits/{auditId}": {
+      "schema": "AuditRecord",
+      "description": "User-isolated quality assurance audit records"
+    },
+    "/users/{userId}/interactions/{interactionId}": {
+      "schema": "InteractionRecord",
+      "description": "User-isolated multi-turn QA reflection logs with Gemini"
+    },
+    "/companyBasis/{docId}": {
+      "schema": "CompanyBasis",
+      "description": "Institutional QA benchmark standards and policies uploaded by Super Admin"
+    }
+  }
+}

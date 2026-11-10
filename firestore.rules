@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Super Admin: verified Google account matching the designated email
+    function isSuperAdmin() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'jeleria_250000000106@uic.edu.ph';
+    }
+
+    // Instructor profile document
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      allow read: if isSuperAdmin();
+
+      // Required isolation rule: /users/{userId}/interactions
+      match /interactions/{interactionId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if isSuperAdmin();
+      }
+
+      // Saved quality audits and session summaries
+      match /audits/{auditId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if isSuperAdmin();
+      }
+    }
+
+    // Super Admin consolidated queries across all users (read-only)
+    match /{path=**}/interactions/{interactionId} {
+      allow read: if isSuperAdmin();
+    }
+    match /{path=**}/audits/{auditId} {
+      allow read: if isSuperAdmin();
+    }
+
+    // Company basis (benchmark): any signed-in instructor reads, only Super Admin writes
+    match /companyBasis/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    // Zero insecure defaults: deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

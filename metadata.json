@@ -1,0 +1,6 @@
+{
+  "name": "Student Success Audit - SJPIIC CICT",
+  "description": "Quality Assurance audit system for St. John Paul II College of Davao, College of Information and Communications Technology. Audits student pass/fail/drop root causes and instructor teaching/assessment strategy effectiveness across Prelim, Midterm, and Final examination periods.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
