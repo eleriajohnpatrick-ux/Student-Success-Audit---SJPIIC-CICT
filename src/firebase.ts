@@ -41,7 +41,7 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-export const SUPER_ADMIN_EMAIL = 'jeleria_250000000106@uic.edu.ph';
+export const SUPER_ADMIN_EMAIL = 'jeleria_250000008106@uic.edu.ph';
 export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
 export const FIREBASE_AUTH_SETTINGS_URL = `https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/settings`;
 
