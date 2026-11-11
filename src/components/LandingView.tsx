@@ -1,18 +1,20 @@
 import React from 'react';
-import { ShieldCheck, CheckCircle2, Lock, Cpu, Sparkles, BookOpen, BarChart3, ArrowRight, Award } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Lock, Cpu, Sparkles, BookOpen, BarChart3, ArrowRight, Award, Loader2 } from 'lucide-react';
 
 interface LandingViewProps {
   onSignIn: () => void;
   onExploreDemo: () => void;
   onExploreAdminDemo?: () => void;
   onTroubleshootAuth?: () => void;
+  isSigningIn?: boolean;
 }
 
 export const LandingView: React.FC<LandingViewProps> = ({ 
   onSignIn, 
   onExploreDemo, 
   onExploreAdminDemo,
-  onTroubleshootAuth 
+  onTroubleshootAuth,
+  isSigningIn = false
 }) => {
   const isVercelHost = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
   const currentHost = typeof window !== 'undefined' ? window.location.hostname : '';
@@ -43,7 +45,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
               <button
                 type="button"
                 onClick={onTroubleshootAuth}
-                className="ml-3 shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded text-[11px] transition-colors"
+                className="ml-3 shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded text-[11px] transition-colors cursor-pointer"
               >
                 Domain Setup Guide
               </button>
@@ -64,11 +66,21 @@ export const LandingView: React.FC<LandingViewProps> = ({
           <button
             type="button"
             onClick={onSignIn}
-            className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-blue-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-sm cursor-pointer"
+            disabled={isSigningIn}
+            className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-blue-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <ShieldCheck className="w-4 h-4 text-amber-300" />
-            <span>Sign In with Google SSO</span>
-            <ArrowRight className="w-4 h-4 ml-1" />
+            {isSigningIn ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Signing in with Google...</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="w-4 h-4 text-amber-300" />
+                <span>Sign In with Google SSO</span>
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </>
+            )}
           </button>
 
           <button

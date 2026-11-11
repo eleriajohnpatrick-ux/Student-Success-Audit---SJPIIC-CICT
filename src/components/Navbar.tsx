@@ -1,14 +1,26 @@
 import React from 'react';
 import { User } from 'firebase/auth';
-import { ShieldCheck, LogIn, LogOut, FileSpreadsheet, History, Award, BookOpen, UserCheck } from 'lucide-react';
+import { 
+  ShieldCheck, 
+  LogIn, 
+  LogOut, 
+  FileSpreadsheet, 
+  History, 
+  Award, 
+  BookOpen, 
+  UserCheck,
+  LayoutDashboard,
+  Loader2
+} from 'lucide-react';
 import { isUserSuperAdmin } from '../firebase';
 
 interface NavbarProps {
   user: User | null;
-  activeTab: 'new-audit' | 'history' | 'profile' | 'benchmarks' | 'admin';
-  onSelectTab: (tab: 'new-audit' | 'history' | 'profile' | 'benchmarks' | 'admin') => void;
+  activeTab: 'dashboard' | 'new-audit' | 'history' | 'profile' | 'benchmarks' | 'admin';
+  onSelectTab: (tab: 'dashboard' | 'new-audit' | 'history' | 'profile' | 'benchmarks' | 'admin') => void;
   onSignIn: () => void;
   onSignOut: () => void;
+  isSigningIn?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -16,7 +28,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
   onSignIn,
-  onSignOut
+  onSignOut,
+  isSigningIn = false
 }) => {
   const isSuperAdmin = isUserSuperAdmin(user);
 
@@ -25,7 +38,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onSelectTab('new-audit')}>
+          <div 
+            className="flex items-center space-x-3 cursor-pointer" 
+            onClick={() => onSelectTab(user ? 'dashboard' : 'new-audit')}
+            title="SJPIIC Student Success Audit"
+          >
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 via-indigo-600 to-amber-500 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white font-extrabold text-lg">
               JP
             </div>
@@ -47,6 +64,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Navigation Links */}
           {user && (
             <nav className="hidden md:flex items-center space-x-1" aria-label="Main Navigation">
+              <button
+                type="button"
+                onClick={() => onSelectTab('dashboard')}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                  activeTab === 'dashboard'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => onSelectTab('new-audit')}
@@ -157,7 +187,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={onSignOut}
                   title="Sign Out"
                   aria-label="Sign Out"
-                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-md transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -166,10 +196,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={onSignIn}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition-all shadow-md shadow-blue-600/30"
+                disabled={isSigningIn}
+                title="Sign In with Google SSO"
+                className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md shadow-blue-600/30 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0"
               >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Sign In with Google</span>
+                {isSigningIn ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Sign In with Google</span>
+                  </>
+                )}
               </button>
             )}
           </div>
@@ -178,6 +219,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Mobile Navigation bar */}
         {user && (
           <div className="md:hidden flex items-center space-x-1 py-2 overflow-x-auto border-t border-slate-800/80">
+            <button
+              type="button"
+              onClick={() => onSelectTab('dashboard')}
+              className={`px-2.5 py-1 text-[11px] font-medium rounded whitespace-nowrap ${
+                activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400'
+              }`}
+            >
+              Dashboard
+            </button>
             <button
               type="button"
               onClick={() => onSelectTab('new-audit')}

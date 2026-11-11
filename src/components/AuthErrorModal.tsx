@@ -24,7 +24,6 @@ interface AuthErrorModalProps {
   error: AuthErrorInfo;
   onClose: () => void;
   onRetryWithPopup: () => void;
-  onRetryWithRedirect: () => void;
   onEnterFacultyDemo: () => void;
   onEnterAdminDemo: () => void;
 }
@@ -33,7 +32,6 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
   error,
   onClose,
   onRetryWithPopup,
-  onRetryWithRedirect,
   onEnterFacultyDemo,
   onEnterAdminDemo
 }) => {
@@ -97,7 +95,7 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
                 <button
                   type="button"
                   onClick={handleCopyDomain}
-                  className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ml-2"
+                  className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ml-2 cursor-pointer"
                 >
                   {copied ? (
                     <>
@@ -152,14 +150,14 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
           ) : isPopupBlocked ? (
             <div className="space-y-3">
               <p className="leading-relaxed">
-                Your browser or device blocked the Google Sign-In popup window. You can sign in using full-page redirect mode instead.
+                Your browser or device blocked the Google Sign-In popup window. Please allow popups for this site in your browser address bar and try again.
               </p>
               <button
                 type="button"
-                onClick={onRetryWithRedirect}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl flex items-center justify-center space-x-2 transition-colors"
+                onClick={onRetryWithPopup}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl flex items-center justify-center space-x-2 transition-colors cursor-pointer"
               >
-                <span>Continue with Google Redirect</span>
+                <span>Retry Sign-In with Popup</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -179,7 +177,7 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
           {/* Quick Instant-Access Section */}
           <div className="pt-2 border-t border-slate-800 space-y-2.5">
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Immediate Demo Access (No Firebase Config Needed):
+              Immediate Access (Bypass Domain Restriction for Testing):
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
@@ -188,10 +186,10 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
                   onEnterFacultyDemo();
                   onClose();
                 }}
-                className="flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2.5 rounded-xl font-semibold transition-all hover:border-blue-500 text-xs"
+                className="flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2.5 rounded-xl font-semibold transition-all hover:border-blue-500 text-xs cursor-pointer"
               >
                 <UserCheck className="w-4 h-4 text-blue-400" />
-                <span>Faculty Demo Session</span>
+                <span>Faculty Dashboard</span>
               </button>
 
               <button
@@ -200,7 +198,7 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
                   onEnterAdminDemo();
                   onClose();
                 }}
-                className="flex items-center justify-center space-x-2 bg-amber-950/40 hover:bg-amber-900/40 text-amber-300 border border-amber-600/50 px-3 py-2.5 rounded-xl font-semibold transition-all text-xs"
+                className="flex items-center justify-center space-x-2 bg-amber-950/40 hover:bg-amber-900/40 text-amber-300 border border-amber-600/50 px-3 py-2.5 rounded-xl font-semibold transition-all text-xs cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4 text-amber-400" />
                 <span>Super Admin (J. Eleria)</span>
@@ -210,32 +208,23 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="bg-slate-950 p-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+        <div className="bg-slate-950 p-4 border-t border-slate-800 flex items-center justify-between gap-2.5">
           <button
             type="button"
             onClick={onClose}
-            className="text-xs text-slate-400 hover:text-white px-3 py-2 transition-colors order-2 sm:order-1"
+            className="text-xs text-slate-400 hover:text-white px-3 py-2 transition-colors cursor-pointer"
           >
             Dismiss
           </button>
 
-          <div className="flex items-center space-x-2 w-full sm:w-auto order-1 sm:order-2">
-            <button
-              type="button"
-              onClick={onRetryWithRedirect}
-              className="flex-1 sm:flex-initial text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3.5 py-2 rounded-xl font-semibold border border-slate-700 transition-colors"
-            >
-              Sign In with Redirect
-            </button>
-            <button
-              type="button"
-              onClick={onRetryWithPopup}
-              className="flex-1 sm:flex-initial text-xs bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold transition-colors flex items-center justify-center space-x-1.5 shadow-md shadow-blue-600/30"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Retry Sign-In</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onRetryWithPopup}
+            className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold transition-colors flex items-center justify-center space-x-1.5 shadow-md shadow-blue-600/30 cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Retry Sign-In with Popup</span>
+          </button>
         </div>
       </div>
     </div>

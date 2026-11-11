@@ -3,8 +3,6 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
-  signInWithRedirect,
-  getRedirectResult,
   signOut, 
   onAuthStateChanged, 
   setPersistence,
@@ -110,4 +108,4 @@ export async function testConnection() {
 // Perform initial connection test safely
 testConnection();
 
-export { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence };
+export { signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence };

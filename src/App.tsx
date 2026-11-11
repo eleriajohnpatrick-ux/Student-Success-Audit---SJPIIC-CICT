@@ -6,8 +6,6 @@ import {
   db, 
   googleProvider, 
   signInWithPopup, 
-  signInWithRedirect,
-  getRedirectResult,
   signOut, 
   onAuthStateChanged,
   isUserSuperAdmin,
@@ -16,6 +14,7 @@ import {
 } from './firebase';
 import { Navbar } from './components/Navbar';
 import { LandingView } from './components/LandingView';
+import { DashboardView } from './components/DashboardView';
 import { InstructorProfileForm } from './components/InstructorProfileForm';
 import { GradebookUploader } from './components/GradebookUploader';
 import { AuditReportView } from './components/AuditReportView';
@@ -36,10 +35,26 @@ import { computeGradeAuditStats, ComputedAuditStats } from './utils/gradeCalcula
 import { generateDeterministicAudit } from './utils/auditFallback';
 import { AlertCircle, Loader2, Sparkles, AlertTriangle, ExternalLink, Globe } from 'lucide-react';
 
+const SESSION_STORAGE_KEY = 'sjpiic_cict_auth_user_v1';
+
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    // Check local storage on initial mount to prevent flickering or losing session
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (saved) {
+          return JSON.parse(saved) as User;
+        }
+      } catch (e) {
+        console.warn('Notice parsing stored session:', e);
+      }
+    }
+    return null;
+  });
   const [authLoading, setAuthLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'new-audit' | 'history' | 'profile' | 'benchmarks' | 'admin'>('new-audit');
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'new-audit' | 'history' | 'profile' | 'benchmarks' | 'admin'>('dashboard');
   
   // App State
   const [instructorProfile, setInstructorProfile] = useState<InstructorProfile>({
@@ -68,29 +83,23 @@ export default function App() {
   // Authentication error state for Vercel / domain assistance
   const [authError, setAuthError] = useState<AuthErrorInfo | null>(null);
 
-  // Listen to redirect auth result on initial boot (for full-page OAuth redirect)
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          setUser(result.user);
-          setAuthError(null);
-        }
-      })
-      .catch((err: any) => {
-        console.error('Redirect sign-in error:', err);
-        const code = err.code || '';
-        const message = err.message || 'Google Sign-In via redirect failed.';
-        const domain = typeof window !== 'undefined' ? window.location.hostname : '';
-        setAuthError({ code, message, domain });
-      });
-  }, []);
-
   // Listen to Auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
       if (currentUser) {
+        setUser(currentUser);
+        try {
+          localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+            uid: currentUser.uid,
+            email: currentUser.email,
+            displayName: currentUser.displayName,
+            emailVerified: currentUser.emailVerified,
+            photoURL: currentUser.photoURL
+          }));
+        } catch (e) {
+          console.warn('Notice storing session:', e);
+        }
+
         setInstructorProfile((prev) => ({
           ...prev,
           uid: currentUser.uid,
@@ -108,6 +117,12 @@ export default function App() {
           }
         } catch (err) {
           console.warn('Initial profile load notice:', err);
+        }
+      } else {
+        // If Firebase auth says null, only clear if no active user session was set
+        const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (!savedSession) {
+          setUser(null);
         }
       }
       setAuthLoading(false);
@@ -132,13 +147,34 @@ export default function App() {
     loadCompanyBasis();
   }, []);
 
-  const handleSignIn = async (useRedirect = false) => {
+  const handleSignIn = async () => {
     setAuthError(null);
+    setIsSigningIn(true);
     try {
-      if (useRedirect) {
-        await signInWithRedirect(auth, googleProvider);
+      // Use signInWithPopup exclusively to prevent storage partitioning errors during redirects
+      const result = await signInWithPopup(auth, googleProvider);
+      const signedInUser = result.user;
+      
+      setUser(signedInUser);
+      setAuthError(null);
+
+      try {
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+          uid: signedInUser.uid,
+          email: signedInUser.email,
+          displayName: signedInUser.displayName,
+          emailVerified: signedInUser.emailVerified,
+          photoURL: signedInUser.photoURL
+        }));
+      } catch (e) {
+        console.warn('Notice saving session:', e);
+      }
+
+      // Route immediately based on role
+      if (isUserSuperAdmin(signedInUser)) {
+        setActiveTab('admin');
       } else {
-        await signInWithPopup(auth, googleProvider);
+        setActiveTab('dashboard');
       }
     } catch (err: any) {
       console.error('Google SSO Sign-In error:', err);
@@ -146,45 +182,62 @@ export default function App() {
       let message = err.message || 'Google SSO Sign-In failed.';
       const domain = typeof window !== 'undefined' ? window.location.hostname : '';
 
-      if (code === 'auth/unauthorized-domain' || message.toLowerCase().includes('unauthorized domain')) {
-        message = `The domain (${domain}) is not authorized for OAuth operations in your Firebase project (${FIREBASE_PROJECT_ID}).`;
-      } else if (code === 'auth/popup-blocked') {
-        message = 'The Google Sign-In popup was blocked by your browser. Please try signing in with redirect mode.';
-      } else if (code === 'auth/cancelled-popup-request' || code === 'auth/popup-closed-by-user') {
+      if (code === 'auth/cancelled-popup-request' || code === 'auth/popup-closed-by-user') {
+        // User voluntarily closed popup - do not show scary error
+        setIsSigningIn(false);
         return;
       }
 
+      if (code === 'auth/unauthorized-domain' || message.toLowerCase().includes('unauthorized domain')) {
+        message = `The domain (${domain}) is not authorized for OAuth operations in your Firebase project (${FIREBASE_PROJECT_ID}).`;
+      } else if (code === 'auth/popup-blocked') {
+        message = 'The Google Sign-In popup was blocked by your browser. Please allow popups for this site and try again.';
+      }
+
       setAuthError({ code, message, domain });
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
   const handleEnterFacultyDemo = () => {
     setAuthError(null);
-    setActiveTab('new-audit');
-    setUser({
+    const demoUser = {
       uid: 'demo_faculty_01',
       email: 'instructor.demo@sjpiicdavao.edu.ph',
       displayName: 'Prof. Reynaldo D. Santos, MIT',
       emailVerified: true
-    } as User);
+    } as User;
+    
+    setUser(demoUser);
+    try {
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(demoUser));
+    } catch (e) {}
+    setActiveTab('dashboard');
   };
 
   const handleEnterAdminDemo = () => {
     setAuthError(null);
-    setActiveTab('admin');
-    setUser({
+    const adminUser = {
       uid: 'super_admin_jeleria',
       email: 'jeleria_250000000106@uic.edu.ph',
       displayName: 'J. Eleria (Super Admin)',
       emailVerified: true
-    } as User);
+    } as User;
+
+    setUser(adminUser);
+    try {
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(adminUser));
+    } catch (e) {}
+    setActiveTab('admin');
   };
 
   const handleSignOut = async () => {
     try {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
       await signOut(auth);
       setUser(null);
-      setActiveTab('new-audit');
+      setActiveTab('dashboard');
       setAuditStep('upload');
       setActiveCourseInfo(null);
       setActiveStats(null);
@@ -285,6 +338,7 @@ export default function App() {
         }}
         onSignIn={handleSignIn}
         onSignOut={handleSignOut}
+        isSigningIn={isSigningIn}
       />
 
       {/* Main Content Area */}
@@ -293,26 +347,9 @@ export default function App() {
           // Landing Page for unauthenticated visitors
           <LandingView
             onSignIn={handleSignIn}
-            onExploreDemo={() => {
-              // Create demo faculty session so anyone can test immediately
-              setActiveTab('new-audit');
-              setUser({
-                uid: 'demo_faculty_01',
-                email: 'instructor.demo@sjpiicdavao.edu.ph',
-                displayName: 'Prof. Reynaldo D. Santos, MIT',
-                emailVerified: true
-              } as User);
-            }}
-            onExploreAdminDemo={() => {
-              // Create verified Super Admin session for designated account
-              setActiveTab('admin');
-              setUser({
-                uid: 'super_admin_jeleria',
-                email: 'jeleria_250000000106@uic.edu.ph',
-                displayName: 'J. Eleria (Super Admin)',
-                emailVerified: true
-              } as User);
-            }}
+            isSigningIn={isSigningIn}
+            onExploreDemo={handleEnterFacultyDemo}
+            onExploreAdminDemo={handleEnterAdminDemo}
             onTroubleshootAuth={() => {
               const domain = typeof window !== 'undefined' ? window.location.hostname : '';
               setAuthError({
@@ -325,6 +362,20 @@ export default function App() {
         ) : (
           // Authenticated Application Views
           <>
+            {/* Dashboard View */}
+            {activeTab === 'dashboard' && (
+              <DashboardView
+                user={user}
+                profile={instructorProfile}
+                companyBasis={companyBasis}
+                onNavigate={(tab) => setActiveTab(tab)}
+                onStartAudit={() => {
+                  setActiveTab('new-audit');
+                  setAuditStep('upload');
+                }}
+              />
+            )}
+
             {/* New Audit View */}
             {activeTab === 'new-audit' && (
               <div className="space-y-6">
@@ -434,8 +485,7 @@ export default function App() {
         <AuthErrorModal
           error={authError}
           onClose={() => setAuthError(null)}
-          onRetryWithPopup={() => handleSignIn(false)}
-          onRetryWithRedirect={() => handleSignIn(true)}
+          onRetryWithPopup={handleSignIn}
           onEnterFacultyDemo={handleEnterFacultyDemo}
           onEnterAdminDemo={handleEnterAdminDemo}
         />
