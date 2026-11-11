@@ -7,6 +7,8 @@ import {
   getRedirectResult,
   signOut, 
   onAuthStateChanged, 
+  setPersistence,
+  browserLocalPersistence,
   User 
 } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
@@ -26,6 +28,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+
+// Pinapanatili nitong naka-save ang login session sa browser local storage
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error('Error setting auth persistence:', error);
+});
+
 export const googleProvider = new GoogleAuthProvider();
 
 // Google OAuth scopes for email and profile
@@ -102,4 +110,4 @@ export async function testConnection() {
 // Perform initial connection test safely
 testConnection();
 
-export { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged };
+export { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence };
